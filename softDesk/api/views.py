@@ -1,8 +1,9 @@
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 from .models import User, Project, Contributor, Issue, Comment
 from .serializers import (
     UserSerializer, ProjectSerializer, ContributorSerializer,
@@ -12,7 +13,7 @@ from .serializers import (
 
 # User ViewSet
 class UserViewSet(viewsets.ModelViewSet):
-    """ViewSet pour gérer les utilisateurs"""
+    """ViewSet for managing users"""
     queryset = User.objects.all()
     serializer_class = UserSerializer
     
@@ -25,13 +26,13 @@ class UserViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         if self.action in ['retrieve', 'update', 'partial_update']:
-            # L'utilisateur ne peut voir/modifier que son propre profil
+            # User can only view/modify their own profile
             return User.objects.filter(id=self.request.user.id)
         return User.objects.all()
     
     @action(detail=False, methods=['get', 'put', 'patch'])
     def profile(self, request):
-        """Endpoint pour gérer le profil de l'utilisateur connecté"""
+        """Endpoint for managing the connected user's profile"""
         user = request.user
         if request.method == 'GET':
             serializer = self.get_serializer(user)
@@ -46,23 +47,23 @@ class UserViewSet(viewsets.ModelViewSet):
 
 # Project ViewSet
 class ProjectViewSet(viewsets.ModelViewSet):
-    """ViewSet pour gérer les projets"""
+    """ViewSet for managing projects"""
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        # Retourne les projets où l'utilisateur est auteur ou contributeur
+        # Returns projects where the user is author or contributor
         user = self.request.user
-        authored_projects = Project.objects.filter(author=user)
-        contributed_projects = Project.objects.filter(contributor__user=user)
-        return authored_projects.union(contributed_projects).distinct()
+        return Project.objects.filter(
+            Q(author=user) | Q(contributor__user=user)
+        ).distinct()
     
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
     
-    @action(detail=True, methods=['get', 'post'])
+    @action(detail=True, methods=['get', 'post', 'delete'])
     def contributors(self, request, pk=None):
-        """Gérer les contributeurs d'un projet"""
+        """Manage project contributors"""
         project = self.get_object()
         
         if request.method == 'GET':
@@ -71,10 +72,10 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         
         elif request.method == 'POST':
-            # Vérifier que l'utilisateur est l'auteur du projet
+            # Check that user is the project author
             if project.author != request.user:
                 return Response(
-                    {"error": "Seul l'auteur peut ajouter des contributeurs"}, 
+                    {"error": "Only the author can add contributors"}, 
                     status=status.HTTP_403_FORBIDDEN
                 )
             
@@ -89,18 +90,46 @@ class ProjectViewSet(viewsets.ModelViewSet):
                     return Response(serializer.data, status=status.HTTP_201_CREATED)
                 else:
                     return Response(
-                        {"error": "Cet utilisateur est déjà contributeur"}, 
+                        {"error": "This user is already a contributor"}, 
                         status=status.HTTP_400_BAD_REQUEST
                     )
             except User.DoesNotExist:
                 return Response(
-                    {"error": "Utilisateur non trouvé"}, 
+                    {"error": "User not found"}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        elif request.method == 'DELETE':
+            # Check that user is the project author
+            if project.author != request.user:
+                return Response(
+                    {"error": "Only the author can remove contributors"}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            user_id = request.data.get('user_id')
+            try:
+                user = User.objects.get(id=user_id)
+                contributor = Contributor.objects.get(user=user, project=project)
+                contributor.delete()
+                return Response(
+                    {"message": "Contributor successfully removed"}, 
+                    status=status.HTTP_204_NO_CONTENT
+                )
+            except User.DoesNotExist:
+                return Response(
+                    {"error": "User not found"}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            except Contributor.DoesNotExist:
+                return Response(
+                    {"error": "This user is not a contributor to this project"}, 
                     status=status.HTTP_404_NOT_FOUND
                 )
     
     @action(detail=True, methods=['get', 'post'])
     def issues(self, request, pk=None):
-        """Gérer les issues d'un projet"""
+        """Manage project issues"""
         project = self.get_object()
         
         if request.method == 'GET':
@@ -118,28 +147,32 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
 # Contributor ViewSet
 class ContributorViewSet(viewsets.ModelViewSet):
-    """ViewSet pour gérer les contributeurs"""
+    """ViewSet for managing contributors"""
+    queryset = Contributor.objects.all()  # Default queryset
     serializer_class = ContributorSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        # Override to filter by project
         project_id = self.kwargs.get('project_pk')
         if project_id:
-            return Contributor.objects.filter(project_id=project_id)
-        return Contributor.objects.none()
+            return self.queryset.filter(project_id=project_id)
+        return self.queryset.none()
 
 
 # Issue ViewSet
 class IssueViewSet(viewsets.ModelViewSet):
-    """ViewSet pour gérer les issues"""
+    """ViewSet for managing issues"""
+    queryset = Issue.objects.all()  # Default queryset
     serializer_class = IssueSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        # Override to filter by project
         project_id = self.kwargs.get('project_pk')
         if project_id:
-            return Issue.objects.filter(project_id=project_id)
-        return Issue.objects.none()
+            return self.queryset.filter(project_id=project_id)
+        return self.queryset.none()
     
     def perform_create(self, serializer):
         project_id = self.kwargs.get('project_pk')
@@ -148,7 +181,7 @@ class IssueViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get', 'post'])
     def comments(self, request, pk=None, project_pk=None):
-        """Gérer les commentaires d'une issue"""
+        """Manage issue comments"""
         issue = self.get_object()
         
         if request.method == 'GET':
@@ -166,15 +199,17 @@ class IssueViewSet(viewsets.ModelViewSet):
 
 # Comment ViewSet
 class CommentViewSet(viewsets.ModelViewSet):
-    """ViewSet pour gérer les commentaires"""
+    """ViewSet for managing comments"""
+    queryset = Comment.objects.all()  # Default queryset
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        # Override to filter by issue
         issue_id = self.kwargs.get('issue_pk')
         if issue_id:
-            return Comment.objects.filter(issue_id=issue_id)
-        return Comment.objects.none()
+            return self.queryset.filter(issue_id=issue_id)
+        return self.queryset.none()
     
     def perform_create(self, serializer):
         issue_id = self.kwargs.get('issue_pk')

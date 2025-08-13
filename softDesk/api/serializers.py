@@ -16,7 +16,7 @@ class UserSerializer(serializers.ModelSerializer):
     
     def validate_age(self, value):
         if value is not None and value < 15:
-            raise serializers.ValidationError("L'âge minimum requis est de 15 ans pour des raisons de conformité RGPD.")
+            raise serializers.ValidationError("Minimum age required is 15 years for GDPR compliance reasons.")
         return value
     
     def validate_password(self, value):
@@ -61,7 +61,7 @@ class IssueSerializer(serializers.ModelSerializer):
         model = Issue
         fields = ['id', 'title', 'description', 'tag', 'priority', 'status', 
                  'project', 'author', 'assignee', 'created_time']
-        read_only_fields = ['author', 'created_time']
+        read_only_fields = ['author', 'created_time', 'project']
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -70,4 +70,4 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ['id', 'description', 'issue', 'author', 'created_time']
-        read_only_fields = ['author', 'created_time']
+        read_only_fields = ['author', 'created_time', 'issue']

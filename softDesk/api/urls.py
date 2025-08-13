@@ -4,7 +4,7 @@ from . import views
 
 app_name = 'api'
 
-# Router principal
+# Main router
 router = DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'projects', views.ProjectViewSet, basename='project')
@@ -12,7 +12,7 @@ router.register(r'projects', views.ProjectViewSet, basename='project')
 urlpatterns = [
     path('', include(router.urls)),
     
-    # URLs pour les contributeurs
+    # URLs for contributors
     path('projects/<int:project_pk>/users/', 
          views.ContributorViewSet.as_view({'get': 'list', 'post': 'create'}), 
          name='project-contributors-list'),
@@ -20,7 +20,7 @@ urlpatterns = [
          views.ContributorViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), 
          name='project-contributors-detail'),
     
-    # URLs pour les issues
+    # URLs for issues
     path('projects/<int:project_pk>/issues/', 
          views.IssueViewSet.as_view({'get': 'list', 'post': 'create'}), 
          name='project-issues-list'),
@@ -28,7 +28,7 @@ urlpatterns = [
          views.IssueViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), 
          name='project-issues-detail'),
     
-    # URLs pour les commentaires
+    # URLs for comments
     path('projects/<int:project_pk>/issues/<int:issue_pk>/comments/', 
          views.CommentViewSet.as_view({'get': 'list', 'post': 'create'}), 
          name='issue-comments-list'),
