@@ -23,8 +23,8 @@ class UserViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
     
     def get_queryset(self):
-        # Les utilisateurs peuvent voir tous les autres utilisateurs (pour assignation)
-        # mais ne peuvent modifier que leur propre profil (géré par IsOwnerOrReadOnly)
+        # Users can see all other users (for assignment)
+        # but can only modify their own profile (managed by IsOwnerOrReadOnly)
         return User.objects.all()
 
 
@@ -35,12 +35,12 @@ class ContributorViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsProjectAuthorForContributors]
     
     def get_queryset(self):
-        # Filtre par projet si project_pk est fourni
+        # Filter by project if project_pk is provided
         project_id = self.kwargs.get('project_pk')
         if project_id:
             return self.queryset.filter(project_id=project_id)
         
-        # Sinon, retourne les contributeurs des projets où l'utilisateur est auteur ou contributeur
+        # Otherwise, return contributors from projects where the user is author or contributor
         user = self.request.user
         from projects.models import Project
         user_projects = Project.objects.filter(
@@ -54,9 +54,7 @@ class ContributorViewSet(viewsets.ModelViewSet):
         from projects.models import Project
         project = get_object_or_404(Project, id=project_id)
         
-        # Vérifier que l'utilisateur est l'auteur du projet
-        if project.author != self.request.user:
-            raise ValidationError({"detail": "Seul l'auteur du projet peut ajouter des contributeurs."})
+        # Note: Verification that the user is the project author is handled by IsProjectAuthorForContributors permission
         
         # Get user_id from request data
         user_id = self.request.data.get('user_id')
@@ -65,8 +63,5 @@ class ContributorViewSet(viewsets.ModelViewSet):
         
         user = get_object_or_404(User, id=user_id)
         
-        # Vérifier que l'utilisateur n'est pas déjà contributeur
-        if Contributor.objects.filter(project=project, user=user).exists():
-            raise ValidationError({"detail": "Cet utilisateur est déjà contributeur de ce projet."})
-        
+        # Note: Uniqueness constraint (user, project) is handled by the model's unique_together constraint
         serializer.save(project=project, user=user, role='CONTRIBUTOR')
