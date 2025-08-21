@@ -83,7 +83,8 @@ DELETE /api/projects/{id}/users/{id}/ // Supprimer contributeur (auteur seulemen
 GET /api/projects/{id}/issues/        // Liste issues du projet
 POST /api/projects/{id}/issues/       // Créer issue
 GET /api/projects/{id}/issues/{id}/   // Détail issue
-PUT /api/projects/{id}/issues/{id}/   // Modifier (contributeurs)
+PUT /api/projects/{id}/issues/{id}/   // Modifier tous les champs (contributeurs)
+PATCH /api/projects/{id}/issues/{id}/ // Modifier partiellement (contributeurs)
 DELETE /api/projects/{id}/issues/{id}/ // Supprimer (auteur de l'issue)
 ```
 
@@ -96,6 +97,26 @@ DELETE /api/projects/{id}/issues/{id}/ // Supprimer (auteur de l'issue)
     "priority": "LOW|MEDIUM|HIGH",
     "status": "TO_DO|IN_PROGRESS|FINISHED",
     "assignee": contributor_user_id  // DOIT être contributeur
+}
+```
+
+### Modification d'issue
+```http
+// Modification complète (tous les champs requis)
+PUT /api/projects/{id}/issues/{id}/
+{
+    "title": "string",
+    "description": "string", 
+    "tag": "BUG|FEATURE|TASK",
+    "priority": "LOW|MEDIUM|HIGH",
+    "status": "TO_DO|IN_PROGRESS|FINISHED",
+    "assignee": contributor_user_id
+}
+
+// Modification partielle (seulement les champs à modifier)
+PATCH /api/projects/{id}/issues/{id}/
+{
+    "assignee": contributor_user_id  // Seulement l'assignee
 }
 ```
 

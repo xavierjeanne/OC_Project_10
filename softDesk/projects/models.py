@@ -18,6 +18,9 @@ class Project(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='authored_projects')
     created_time = models.DateTimeField(auto_now_add=True)
     
+    class Meta:
+        ordering = ['-created_time']  # Plus récents en premier
+    
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         super().save(*args, **kwargs)
@@ -65,6 +68,9 @@ class Issue(models.Model):
     assignee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_issues')
     created_time = models.DateTimeField(auto_now_add=True)
     
+    class Meta:
+        ordering = ['-created_time']  # Plus récentes en premier
+    
     def __str__(self):
         return self.title
 
@@ -76,6 +82,9 @@ class Comment(models.Model):
     issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='comments')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='authored_comments')
     created_time = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['created_time']  # Plus anciens en premier (ordre chronologique)
     
     def __str__(self):
         return f"Comment on {self.issue.title} by {self.author.username}"
