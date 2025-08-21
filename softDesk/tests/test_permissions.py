@@ -18,7 +18,7 @@ class PermissionTestCase(TestCase):
         """Configuration initiale pour les tests"""
         self.client = APIClient()
         
-        # Créer des utilisateurs de test
+        # Create test users
         self.author_user = User.objects.create_user(
             username='author',
             email='author@test.com',
@@ -46,23 +46,23 @@ class PermissionTestCase(TestCase):
             can_data_be_shared=False
         )
         
-        # Créer un projet de test
+        # Create a test project
         self.project = Project.objects.create(
             name='Test Project',
             description='A test project',
             type='BACK_END',
             author=self.author_user
         )
-        # Note: Le contributeur AUTHOR est créé automatiquement par Project.save()
+        # Note: The AUTHOR contributor is automatically created by Project.save()
         
-        # Créer le contributeur supplémentaire
+        # Create additional contributor
         Contributor.objects.create(
             user=self.contributor_user,
             project=self.project,
             role='CONTRIBUTOR'
         )
         
-        # Créer une issue de test
+        # Create a test issue
         self.issue = Issue.objects.create(
             title='Test Issue',
             description='A test issue',
@@ -74,7 +74,7 @@ class PermissionTestCase(TestCase):
             assignee=self.contributor_user
         )
         
-        # Créer un commentaire de test
+        # Create a test comment
         self.comment = Comment.objects.create(
             description='Test comment',
             issue=self.issue,
@@ -82,7 +82,7 @@ class PermissionTestCase(TestCase):
         )
     
     def test_age_validation_rgpd(self):
-        """Test : Validation d'âge RGPD (minimum 15 ans)"""
+        """Test: GDPR age validation (minimum 15 years)"""
         data = {
             'username': 'young_user',
             'email': 'young@test.com',
@@ -117,7 +117,7 @@ class PermissionTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
     
     def test_only_contributors_can_access_project(self):
-        """Test : Seuls les contributeurs peuvent accéder aux projets"""
+        """Test: Only contributors can access projects"""
         # Contributeur peut voir
         self.client.force_authenticate(user=self.contributor_user)
         response = self.client.get(f'/api/projects/{self.project.id}/')
@@ -129,7 +129,7 @@ class PermissionTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
     
     def test_only_project_author_can_manage_contributors(self):
-        """Test : Seul l'auteur du projet peut gérer les contributeurs"""
+        """Test: Only project author can manage contributors"""
         # L'auteur peut ajouter un contributeur
         self.client.force_authenticate(user=self.author_user)
         response = self.client.post(f'/api/projects/{self.project.id}/users/', {
@@ -151,10 +151,10 @@ class PermissionTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
     
     def test_assigned_to_must_be_contributor(self):
-        """Test : assignee doit être un contributeur du projet"""
+        """Test: assignee must be a project contributor"""
         self.client.force_authenticate(user=self.contributor_user)
         
-        # Assigner à un non-contributeur devrait échouer
+        # Assigning to a non-contributor should fail
         response = self.client.post(f'/api/projects/{self.project.id}/issues/', {
             'title': 'New Issue',
             'description': 'A new issue',
@@ -167,7 +167,7 @@ class PermissionTestCase(TestCase):
         # donc Django retourne "Invalid pk" ce qui est le comportement attendu
         self.assertIn('Invalid pk', str(response.content))
         
-        # Vérifier qu'on peut assigner à un contributeur valide
+        # Check that we can assign to a valid contributor
         response = self.client.post(f'/api/projects/{self.project.id}/issues/', {
             'title': 'Valid Issue',
             'description': 'A valid issue',

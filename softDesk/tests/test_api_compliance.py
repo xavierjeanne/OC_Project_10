@@ -12,7 +12,7 @@ User = get_user_model()
 
 
 class SoftDeskAPIComplianceTestCase(TestCase):
-    """Tests de conformité complète avec le cahier des charges SoftDesk"""
+    """Complete compliance tests with SoftDesk requirements"""
     
     def setUp(self):
         """Configuration initiale"""
@@ -20,13 +20,13 @@ class SoftDeskAPIComplianceTestCase(TestCase):
         
         # Utilisateurs
         self.author = User.objects.create_user(
-            username='author', email='author@test.com', password='pass123', age=25
+            username='author', email='author@test.com', password='securepass123', age=25
         )
         self.contributor = User.objects.create_user(
-            username='contributor', email='contrib@test.com', password='pass123', age=30
+            username='contributor', email='contrib@test.com', password='securepass123', age=30
         )
         self.outsider = User.objects.create_user(
-            username='outsider', email='outsider@test.com', password='pass123', age=28
+            username='outsider', email='outsider@test.com', password='securepass123', age=28
         )
         
         # Projet
@@ -73,11 +73,11 @@ class SoftDeskAPIComplianceTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
     
     def test_issue_assignment_rules(self):
-        """Test des règles d'assignation des issues selon le cahier des charges"""
+        """Test issue assignment rules according to requirements"""
         
         self.client.force_authenticate(user=self.contributor)
         
-        # 1. Assignation à un non-contributeur doit échouer
+        # 1. Assignment to non-contributor should fail
         response = self.client.post(f'/api/projects/{self.project.id}/issues/', {
             'title': 'New Issue', 'description': 'Test', 'tag': 'FEATURE', 
             'priority': 'HIGH', 'assignee': self.outsider.id
@@ -136,7 +136,7 @@ class SoftDeskAPIComplianceTestCase(TestCase):
         
         # Tentative de création d'un utilisateur trop jeune
         response = self.client.post('/api/auth/register/', {
-            'username': 'young', 'email': 'young@test.com', 'password': 'pass123',
+            'username': 'young', 'email': 'young@test.com', 'password': 'securepass123',
             'age': 14, 'can_be_contacted': True, 'can_data_be_shared': False
         })
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -144,9 +144,14 @@ class SoftDeskAPIComplianceTestCase(TestCase):
         
         # Création d'un utilisateur avec l'âge requis
         response = self.client.post('/api/auth/register/', {
-            'username': 'adult', 'email': 'adult@test.com', 'password': 'pass123',
+            'username': 'adult', 'email': 'adult@test.com', 'password': 'securepass123',
             'age': 16, 'can_be_contacted': True, 'can_data_be_shared': False
         })
+        
+        # Debug : afficher l'erreur si la création échoue
+        if response.status_code != status.HTTP_201_CREATED:
+            print(f"Registration failed with status {response.status_code}: {response.content}")
+        
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
     
     def test_contributor_management_authorization(self):

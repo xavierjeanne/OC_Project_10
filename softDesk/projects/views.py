@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from .models import Project, Issue, Comment
 from .serializers import ProjectSerializer, IssueSerializer, CommentSerializer
-from .permissions import IsAuthorOrReadOnly, IsProjectContributor, IsProjectAuthor, CanAssignToProjectContributors
+from accounts.permissions import IsAuthorOrReadOnly, IsProjectContributor, IsProjectAuthor, CanAssignToProjectContributors
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
