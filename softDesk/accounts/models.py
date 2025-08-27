@@ -25,7 +25,7 @@ class Contributor(models.Model):
     
     class Meta:
         unique_together = ['user', 'project']
-        ordering = ['project__name', 'role']  # Par projet puis par rôle
+        ordering = ['project__name', 'role']  # By project then by role
     
     def __str__(self):
         return f"{self.user.username} - {self.project.name} ({self.role})"

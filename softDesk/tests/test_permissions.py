@@ -160,12 +160,12 @@ class PermissionTestCase(TestCase):
             'description': 'A new issue',
             'tag': 'BUG',
             'priority': 'MEDIUM',
-            'assignee': self.other_user.id  # other_user n'est pas contributeur
+            'assignee': self.other_user.id  # other_user is not a contributor
         })
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        # Le serializer filtre automatiquement les non-contributeurs,
-        # donc Django retourne "Invalid pk" ce qui est le comportement attendu
-        self.assertIn('Invalid pk', str(response.content))
+        # The serializer automatically filters out non-contributors,
+        # and returns an error message that the user is not a contributor
+        self.assertIn('is not a contributor to project', str(response.content))
         
         # Check that we can assign to a valid contributor
         response = self.client.post(f'/api/projects/{self.project.id}/issues/', {
@@ -173,7 +173,7 @@ class PermissionTestCase(TestCase):
             'description': 'A valid issue',
             'tag': 'FEATURE',
             'priority': 'LOW',
-            'assignee': self.contributor_user.id  # contributeur valide
+            'assignee': self.contributor_user.id  # valid contributor
         })
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
     

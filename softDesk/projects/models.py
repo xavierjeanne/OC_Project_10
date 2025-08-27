@@ -19,7 +19,7 @@ class Project(models.Model):
     created_time = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        ordering = ['-created_time']  # Plus récents en premier
+        ordering = ['-created_time']  # Most recent first
     
     def save(self, *args, **kwargs):
         is_new = self.pk is None
@@ -69,7 +69,7 @@ class Issue(models.Model):
     created_time = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        ordering = ['-created_time']  # Plus récentes en premier
+        ordering = ['-created_time']  # Most recent first
     
     def __str__(self):
         return self.title
@@ -84,7 +84,7 @@ class Comment(models.Model):
     created_time = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        ordering = ['created_time']  # Plus anciens en premier (ordre chronologique)
+        ordering = ['created_time']  # Oldest first (chronological order)
     
     def __str__(self):
         return f"Comment on {self.issue.title} by {self.author.username}"

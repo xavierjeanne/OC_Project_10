@@ -120,15 +120,25 @@ class CanAssignToProjectContributors(permissions.BasePermission):
 class IsProjectAuthor(permissions.BasePermission):
     """
     Permission that only allows the project author to make modifications.
+    Read access is allowed for any contributor.
     """
 
+    def has_permission(self, request, view):
+        # Always allow listing and creation
+        return True
+        
     def has_object_permission(self, request, view, obj):
         # Read permissions for all contributors
         if request.method in permissions.SAFE_METHODS:
-            return Contributor.objects.filter(
-                project=obj,
-                user=request.user
-            ).exists()
+            # If obj is a Project, check directly
+            if hasattr(obj, 'contributors'):
+                return obj.contributors.filter(user=request.user).exists() or obj.author == request.user
+            # Otherwise, assume it's related to a project
+            elif hasattr(obj, 'project'):
+                project = obj.project
+                return project.contributors.filter(user=request.user).exists() or project.author == request.user
+            
+            return False
 
         # Write permissions only for the author
         return obj.author == request.user

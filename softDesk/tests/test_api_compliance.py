@@ -1,5 +1,5 @@
 """
-Test complet de l'API SoftDesk selon le cahier des charges
+Complete test of the SoftDesk API according to the specifications
 """
 from django.test import TestCase
 from django.contrib.auth import get_user_model
@@ -15,10 +15,10 @@ class SoftDeskAPIComplianceTestCase(TestCase):
     """Complete compliance tests with SoftDesk requirements"""
     
     def setUp(self):
-        """Configuration initiale"""
+        """Initial setup"""
         self.client = APIClient()
         
-        # Utilisateurs
+        # Users
         self.author = User.objects.create_user(
             username='author', email='author@test.com', password='securepass123', age=25
         )
@@ -29,7 +29,7 @@ class SoftDeskAPIComplianceTestCase(TestCase):
             username='outsider', email='outsider@test.com', password='securepass123', age=28
         )
         
-        # Projet
+        # Project
         self.project = Project.objects.create(
             name='Test Project', description='Test', type='BACK_END', author=self.author
         )
@@ -47,25 +47,25 @@ class SoftDeskAPIComplianceTestCase(TestCase):
         )
     
     def test_complete_project_workflow(self):
-        """Test complet du workflow d'un projet selon le cahier des charges"""
+        """Complete test of project workflow according to specifications"""
         
-        # 1. Seuls les contributeurs peuvent voir le projet
+        # 1. Only contributors can see the project
         self.client.force_authenticate(user=self.outsider)
         response = self.client.get(f'/api/projects/{self.project.id}/')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         
-        # 2. Contributeur peut voir le projet
+        # 2. Contributor can see the project
         self.client.force_authenticate(user=self.contributor)
         response = self.client.get(f'/api/projects/{self.project.id}/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
-        # 3. Seul l'auteur peut modifier le projet
+        # 3. Only the author can modify the project
         response = self.client.put(f'/api/projects/{self.project.id}/', {
             'name': 'Updated', 'description': 'Updated', 'type': 'FRONT_END'
         })
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         
-        # 4. L'auteur peut modifier le projet
+        # 4. The author can modify the project
         self.client.force_authenticate(user=self.author)
         response = self.client.put(f'/api/projects/{self.project.id}/', {
             'name': 'Updated Project', 'description': 'Updated', 'type': 'FRONT_END'
@@ -84,7 +84,7 @@ class SoftDeskAPIComplianceTestCase(TestCase):
         })
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         
-        # 2. Assignation à un contributeur doit réussir
+        # 2. Assignment to a contributor should succeed
         response = self.client.post(f'/api/projects/{self.project.id}/issues/', {
             'title': 'New Issue', 'description': 'Test', 'tag': 'FEATURE', 
             'priority': 'HIGH', 'assignee': self.contributor.id
@@ -92,9 +92,9 @@ class SoftDeskAPIComplianceTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
     
     def test_resource_author_permissions(self):
-        """Test des permissions d'auteur selon le cahier des charges"""
+        """Test of author permissions according to specifications"""
         
-        # 1. Seul l'auteur d'un commentaire peut le modifier
+        # 1. Only the author of a comment can modify it
         self.client.force_authenticate(user=self.contributor)  # Auteur du commentaire
         response = self.client.put(
             f'/api/projects/{self.project.id}/issues/{self.issue.id}/comments/{self.comment.id}/',
@@ -102,7 +102,7 @@ class SoftDeskAPIComplianceTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
-        # 2. Un autre utilisateur ne peut pas modifier le commentaire
+        # 2. Another user cannot modify the comment
         self.client.force_authenticate(user=self.author)
         response = self.client.put(
             f'/api/projects/{self.project.id}/issues/{self.issue.id}/comments/{self.comment.id}/',
@@ -111,11 +111,11 @@ class SoftDeskAPIComplianceTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
     
     def test_pagination_implementation(self):
-        """Test que la pagination est bien implémentée"""
+        """Test that pagination is correctly implemented"""
         
         self.client.force_authenticate(user=self.author)
         
-        # Créer plusieurs projets pour tester la pagination
+        # Create multiple projects to test pagination
         for i in range(25):  # Plus que PAGE_SIZE (20)
             Project.objects.create(
                 name=f'Project {i}', description=f'Desc {i}', 
@@ -125,16 +125,16 @@ class SoftDeskAPIComplianceTestCase(TestCase):
         response = self.client.get('/api/projects/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
-        # Vérifier la structure de pagination
+        # Verify pagination structure
         self.assertIn('results', response.data)
         self.assertIn('count', response.data)
         self.assertIn('next', response.data)
         self.assertEqual(len(response.data['results']), 20)  # PAGE_SIZE
     
     def test_rgpd_age_validation(self):
-        """Test de validation d'âge RGPD"""
+        """Test GDPR age validation"""
         
-        # Tentative de création d'un utilisateur trop jeune
+        # Attempt to create a user who is too young
         response = self.client.post('/api/auth/register/', {
             'username': 'young', 'email': 'young@test.com', 'password': 'securepass123',
             'age': 14, 'can_be_contacted': True, 'can_data_be_shared': False
@@ -142,29 +142,29 @@ class SoftDeskAPIComplianceTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('15 years', str(response.content))
         
-        # Création d'un utilisateur avec l'âge requis
+        # Creation of a user with the required age
         response = self.client.post('/api/auth/register/', {
             'username': 'adult', 'email': 'adult@test.com', 'password': 'securepass123',
             'age': 16, 'can_be_contacted': True, 'can_data_be_shared': False
         })
         
-        # Debug : afficher l'erreur si la création échoue
+        # Debug: display error if creation fails
         if response.status_code != status.HTTP_201_CREATED:
             print(f"Registration failed with status {response.status_code}: {response.content}")
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
     
     def test_contributor_management_authorization(self):
-        """Test de gestion des contributeurs selon le cahier des charges"""
+        """Test contributor management according to specifications"""
         
-        # 1. Seul l'auteur du projet peut ajouter des contributeurs
+        # 1. Only the project author can add contributors
         self.client.force_authenticate(user=self.author)
         response = self.client.post(f'/api/projects/{self.project.id}/users/', {
             'user_id': self.outsider.id
         })
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
-        # 2. Un contributeur ne peut pas ajouter d'autres contributeurs
+        # 2. A contributor cannot add other contributors
         self.client.force_authenticate(user=self.contributor)
         new_user = User.objects.create_user(
             username='newuser', email='new@test.com', password='pass123', age=25
